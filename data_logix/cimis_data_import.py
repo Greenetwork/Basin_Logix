@@ -1,3 +1,6 @@
+'''This file will be used to hit the DWR CIMIS API for agricultural data conditions such as precipitation,
+ET, temp..etc'''
+
 import requests
 
 ABDEL_CIMIS_WEBAPI_KEY = "bb8106ae-9d2d-4333-9985-3df576adc14d" #you will need to create a free account at cimis and request an automated api key
