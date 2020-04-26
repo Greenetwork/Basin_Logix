@@ -6,8 +6,6 @@ FILE_HASH_DWR_WTR_DIST = "QmQ6ZvjG9XWUJYdYMNpHyDiy4sRa7vcvCbj7tL9GNHtSNW" # this
 FILE_HASH_DWR_WTR_DIST_CSV = "Qmc7NHSBDinhk6ByUj77X5mYd5tmu3PtYXMnrBDTFJq93n"
 
 def load_geojson_from_ipfs(host: str, file_to_load: str):
-	host = '/ip4/127.0.0.1/tcp/5001/http'
-	file_to_load = "QmQ6ZvjG9XWUJYdYMNpHyDiy4sRa7vcvCbj7tL9GNHtSNW"
 	client = ipfshttpclient.connect(host) # connect to my local ipfs client
 	loaded_json = client.get_json(file_to_load)  # this will pull the json file from ipfs
 	loaded_json_df = pd.json_normalize(loaded_json["features"]) # this splits the : sep vals to columns
