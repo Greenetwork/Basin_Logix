@@ -1,5 +1,6 @@
-# Basin_Logix
+# Data_Logix Pipeline
 
+Please create a conda env from **data_logix_env.yml**
 This is the initial repository for BLX.
 
 Data Sources:
