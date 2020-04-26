@@ -1,27 +1,17 @@
 import ipfshttpclient
-import os
-import geopandas as gpd
-from shapely.geometry import shape
-import json
-from pandas.io.json import json_normalize
 import pandas as pd
-import logging
 
 HOST_LOCATION = '/ip4/127.0.0.1/tcp/5001/http'
 FILE_HASH_DWR_WTR_DIST = "QmQ6ZvjG9XWUJYdYMNpHyDiy4sRa7vcvCbj7tL9GNHtSNW" # this is the hash for the water dist data
+FILE_HASH_DWR_WTR_DIST_CSV = "Qmc7NHSBDinhk6ByUj77X5mYd5tmu3PtYXMnrBDTFJq93n"
 
-def load_geojson_from_ipfs(host: str, file_to_load: str, file_type: str):
+def load_geojson_from_ipfs(host: str, file_to_load: str):
+	host = '/ip4/127.0.0.1/tcp/5001/http'
+	file_to_load = "QmQ6ZvjG9XWUJYdYMNpHyDiy4sRa7vcvCbj7tL9GNHtSNW"
 	client = ipfshttpclient.connect(host) # connect to my local ipfs client
-	loaded_file = client.cat(file_to_load) # this will pull the file from ipfs - it is a bytes class
-	decoded_loaded_file = loaded_file.decode()
-	if file_type is "JSON":
-		decoded_loaded_df = pd.read_json(decoded_loaded_file)
-	elif file_type is "CSV":
-		decoded_loaded_df = pd.read_csv(decoded_loaded_file)
-	elif file_type is "XLS":
-		decoded_loaded_df = pd.read_excel(decoded_loaded_file)
-	else:
-		logging.warning("Please provide an acceptable file_type")
-	return decoded_loaded_df
+	loaded_json = client.get_json(file_to_load)  # this will pull the json file from ipfs
+	loaded_json_df = pd.json_normalize(loaded_json["features"]) # this splits the : sep vals to columns
+	pd.DataFrame.from_dict(loaded_json_df)
+	return loaded_json_df
 
-df = load_geojson_from_ipfs(host=HOST_LOCATION, file_to_load=FILE_HASH_DWR_WTR_DIST, file_type="JSON")
+df = load_geojson_from_ipfs(host=HOST_LOCATION, file_to_load=FILE_HASH_DWR_WTR_DIST)
