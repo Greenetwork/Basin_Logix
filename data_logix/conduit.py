@@ -67,13 +67,36 @@ def load_california_parcel_data():
     apn_parcels.crs = {'init': 'epsg:2227'}
     apn_parcels = apn_parcels.to_crs({'init': 'epsg:4326'})
     logging.warning("parcel data loaded")
-    parcel_id = input("please provide a parcel id : ")
-    def filter_datasets_by_parsel_id(parcel_id: int):
-        parcel_of_choice = apn_parcels[apn_parcels["APN"] == int(parcel_id)]
-        return parcel_of_choice
+    return apn_parcels
 
+def filter_datasets_by_parcel_id(parcel_id: int, parcel_df):
+    parcel_of_choice = parcel_df[parcel_df["APN"] == int(parcel_id)]
+    return parcel_of_choice
 
-df = load_california_parcel_data()
+def populate_an_aware_parcel(single_parcel_df):
+    single_parcel_df = single_parcel_df.reset_index()
+    populated_parcel_district_information = gpd.sjoin(single_parcel_df, dwr_water_districts_json, how="left", op='intersects').drop(columns=['index', "index_right", ])
+    populated_parcel_district_and_crop_information = gpd.sjoin(populated_parcel_district_information, crop_information_wgs, how="left", op='intersects')
+    return populated_parcel_district_and_crop_information
+
+def tell_me_more_about_my_parcel(parcel_of_choice):
+    parcel_of_choice_df = pd.DataFrame(parcel_of_choice)
+    for index, row in parcel_of_choice_df.iterrows():
+        your_apn = row["APN"]
+        your_acreage = row["Acres"]
+        your_region = row["Region"]
+        your_agency = row["AGENCYNAME"]
+        your_crop = row["Crop2016"]
+        owner_name = row["Source"]
+        print(f"for Parcel with APN:" + f"<b>{your_apn}<b>" + "the records show that your {your_acreage} acres plot" + '\n'
+              f"fis in DWR Agency {your_agency} in {your_region} with {your_acreage} acre {your_crop} crops " + '\n'
+              f"under the ownership of {owner_name}")
+
+if __name__ == "__main__":
+    single_parcel_df = filter_datasets_by_parcel_id(parcel_id=17328002, parcel_df=load_california_parcel_data())
+    parcel_of_choice = populate_an_aware_parcel(single_parcel_df)
+    parcel_of_choice_df = pd.DataFrame(parcel_of_choice)
+    tell_me_more_about_my_parcel(parcel_of_choice_df)
 
 
 
