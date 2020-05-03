@@ -26,7 +26,12 @@ Data Structures:
 | parcel_acerage  | int  | Show file differences that haven't been staged |
 | parcel_area_meter_sq  | geom  | | Show file differences that haven't been staged |
 
-| Command | Description |
+data_logix/conduit_input_data
+| file name | Description |
 | --- | --- |
-| git status | List all new or modified files |
-| git diff | Show file differences that haven't been staged |
+| COUNTIES.geojson | List all new or modified files |
+| CROPS.geojson | Show file differences that haven't been staged |
+| PARCELS.geojson | List all new or modified files |
+| WATER_DISTRICTS.geojson | Show file differences that haven't been staged |
+
+
