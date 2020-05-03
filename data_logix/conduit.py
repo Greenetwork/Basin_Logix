@@ -10,73 +10,91 @@ water consumption calculations
 # filter to san joaquin county for testing purposes
 # filer (zoom) to one single farm or vineyar for testing purpose
 
+#conduit py
+
 import os
 import pandas as pd
 import geopandas as gpd
 import logging
+import fiona
 
-current_dir = os.getcwd()
-logging.warning(f"current dir is {current_dir}") #showing user current dir
-os.chdir('C:\\Users\\Alfahham\\Downloads\\California_Water_Data\\dwr') #todo REMOVE THIS PART AND PULL FROM data import
-changed_dir = os.getcwd()
-logging.warning(f"your directory was changed to {changed_dir}")
+def check_for_conduit_input_data():
+    current_dir = os.getcwd()
+    if "Basin_Logix" in current_dir.split("\\"):
+            logging.warning("Basin_Logix directory detected - all input files will be referenced from this directory")
+        else:
+            logging.warning(" PLEASE CHANGE YOUR DIRECTORY TO BASIN LOGIX REPO - "
+                            " for input files to work your current dir needs to be ~Basin_Logix") #showing user current dir
 
-# WATER DISTRICTS DATA
-# this is a polygon of each district with other val
-dwr_water_districts_json = gpd.read_file("dwr_water_districts_042520.geojson")
+def check_for_conduit_input_files():
+    current_dir = os.getcwd()
+    conduit_input_file_path = "\data_logix\conduit_input_data"
+    full_path = os.path.join(current_dir + conduit_input_file_path)
+    logging.warning(f"checking for input files in {full_path}")
+    list_of_files_in_data_path = os.listdir(full_path)
+    if "WATER_DISTRICTS.geojson" in list_of_files_in_data_path:
+        print("water districts input file detected")
+        if "PARCELS.geojson" in list_of_files_in_data_path:
+            print("parcels input file detected")
+            if "CROPS.geojson" in list_of_files_in_data_path:
+                print("crops input file detected")
+                if "COUNTIES.geojson" in list_of_files_in_data_path:
+                    print("counties input file detected")
+    else:
+        logging.warning("MISSING INPUT FILES")
 
-# CIMIS AG CLIMATE/WEATHER DATA
-cimis_station_locations_df = pd.read_excel("dwr_cimis_stations_list_042520.xlsx") # this will be helpful when we need to pull using the ICIMS API
-#will drop the rows that contain NA in the Lat or Long cols
-cimis_station_locations_df = cimis_station_locations_df.dropna(subset=["Longitude", "Latitude"])
-#georeferencing the df of the cimis stations
-cimis_station_locations_gdf = gpd.GeoDataFrame(cimis_station_locations_df,
-                                               geometry = gpd.points_from_xy(cimis_station_locations_df.Longitude,
-                                                                             cimis_station_locations_df.Latitude))
-#CROP DATA
-crop_information = gpd.read_file("i15_crop_mapping_2016_shp/i15_Crop_Mapping_2016.shp")
-crop_information.crs = {'init': 'epsg:3310'}
-crop_information_wgs = crop_information.to_crs({'init': 'epsg:4326'})
+def load_water_districts_data():
+    water_districts = gpd.read_file("data_logix/conduit_input_data/WATER_DISTRICTS.geojson")
+    assert water_districts.crs == {'init': 'epsg:4326'}
+    assert type(water_districts.geometry) == (gpd.geoseries.GeoSeries)
+    logging.warning("water districts data loaded")
+    return water_districts
 
-#COUNTIES
-def get_geom_from_county_name(selected_county:str):
-    counties = gpd.read_file("C:/Users/Alfahham/Downloads/California_Water_Data/CA_Counties/CA_Counties_TIGER2016.shp")
-    counties = counties.to_crs({'init': 'epsg:4326'})
-    selected_county_geom = counties[counties["NAME"] == selected_county]
+def load_california_parcel_data():
+    apn_parcels = gpd.read_file("data_logix/conduit_input_data/PARCELS.geojson")
+    assert apn_parcels.crs == {'init': 'epsg:4326'} # making sure input data file is in the right crs
+    assert type(apn_parcels.geometry) == (gpd.geoseries.GeoSeries) #making sure i have a geom as geoseries
+    logging.warning("parcel data loaded")
+    return apn_parcels
+
+def load_california_crops_data():
+    crops = gpd.read_file("data_logix/conduit_input_data/CROPS.geojson")
+    assert crops.crs == {'init': 'epsg:4326'} # making sure input data file is in the right crs
+    assert type(crops.geometry) == (gpd.geoseries.GeoSeries) #making sure i have a geom as geoseries
+    logging.warning("crop data loaded")
+    return crops
+
+def load_california_counties_data():
+    counties = gpd.read_file("data_logix/conduit_input_data/COUNTIES.geojson")
+    assert counties.crs == {'init': 'epsg:4326'} # making sure input data file is in the right crs
+    assert type(counties.geometry) == (gpd.geoseries.GeoSeries) #making sure i have a geom as geoseries
+    logging.warning("counties data loaded")
+    return counties
+
+def get_geom_from_county_name(counties_data_frame, selected_county:str):
+    selected_county_geom = counties_data_frame[counties_data_frame["NAME"] == selected_county]
     return selected_county_geom
 
-san_joaquin_geom = get_geom_from_county_name("San Joaquin")
-
-# FILTERED DATASETS SPATIALLY JOINED BY COUNTY
-crop_information_san_joaquin = gpd.sjoin(crop_information_wgs, san_joaquin_geom, op = 'within') #lets add
-crop_information_san_joaquin = crop_information_san_joaquin.drop(columns=['STATEFP', 'COUNTYFP', 'COUNTYNS',
+def filter_data_by_county(data_frame_to_filter, county_geom):
+crop_information_san_joaquin = gpd.sjoin(data_frame_to_filter, county_geom, op='within')  # lets add
+data_frame_to_filter = data_frame_to_filter.drop(columns=['STATEFP', 'COUNTYFP', 'COUNTYNS',
                                                                                 'GEOID', 'NAME', 'NAMELSAD', 'LSAD',
                                                                                 'CLASSFP', 'MTFCC', 'CSAFP', 'CBSAFP',
                                                                                 'METDIVFP', 'FUNCSTAT'])
-dwr_water_districts_san_joaquin = gpd.sjoin(dwr_water_districts_json, san_joaquin_geom, op = 'within')
+
 dwr_water_districts_san_joaquin = dwr_water_districts_san_joaquin.drop(columns=['STATEFP', 'COUNTYFP', 'COUNTYNS',
                                                                                 'GEOID', 'NAME', 'NAMELSAD', 'LSAD',
                                                                                 'CLASSFP', 'MTFCC', 'CSAFP', 'CBSAFP',
                                                                                 'METDIVFP', 'FUNCSTAT'])
 
-
-def load_california_parcel_data():
-    global apn_parcels
-    apn_parcels = gpd.read_file("C:/Users/Alfahham/Downloads/California_Water_Data/Parcels/Parcels.shp")
-    apn_parcels = apn_parcels.dropna(subset=["geometry"])
-    apn_parcels.crs = {'init': 'epsg:2227'}
-    apn_parcels = apn_parcels.to_crs({'init': 'epsg:4326'})
-    logging.warning("parcel data loaded")
-    return apn_parcels
-
 def filter_datasets_by_parcel_id(parcel_id: int, parcel_df):
     parcel_of_choice = parcel_df[parcel_df["APN"] == int(parcel_id)]
     return parcel_of_choice
 
-def populate_an_aware_parcel(single_parcel_df):
+def populate_an_aware_parcel(single_parcel_df, water_districts_df):
     single_parcel_df = single_parcel_df.reset_index()
-    populated_parcel_district_information = gpd.sjoin(single_parcel_df, dwr_water_districts_json, how="left", op='intersects').drop(columns=['index', "index_right", ])
-    populated_parcel_district_and_crop_information = gpd.sjoin(populated_parcel_district_information, crop_information_wgs, how="left", op='intersects')
+    populated_parcel_district_information = gpd.sjoin(single_parcel_df, water_districts_df, how="left", op='intersects').drop(columns=['index', "index_right", ])
+    populated_parcel_district_and_crop_information = gpd.sjoin(populated_parcel_district_information, water_districts_df, how="left", op='intersects')
     return populated_parcel_district_and_crop_information
 
 def tell_me_more_about_my_parcel(parcel_of_choice):
@@ -93,12 +111,15 @@ def tell_me_more_about_my_parcel(parcel_of_choice):
               f"under the ownership of {owner_name}")
 
 if __name__ == "__main__":
+    check_for_conduit_input_data()
+    check_for_conduit_input_files()
+    COUNTIES = load_california_counties_data()
+    san_joaquin_geom = get_geom_from_county_name(counties_data_frame=COUNTIES, selected_county="San Joaquin") #nice source of geom for the county but i dont use this somewhere else
+
+
     single_parcel_df = filter_datasets_by_parcel_id(parcel_id=17328002, parcel_df=load_california_parcel_data())
-    parcel_of_choice = populate_an_aware_parcel(single_parcel_df)
+    parcel_of_choice = populate_an_aware_parcel(single_parcel_df, water_districts_df=load_water_districts_data())
     parcel_of_choice_df = pd.DataFrame(parcel_of_choice)
     tell_me_more_about_my_parcel(parcel_of_choice_df)
-
-
-
 
 
