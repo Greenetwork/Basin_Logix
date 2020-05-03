@@ -13,6 +13,7 @@ water consumption calculations
 #conduit py
 
 import os
+import sys
 import pandas as pd
 import geopandas as gpd
 import logging
@@ -20,7 +21,7 @@ import fiona
 
 def check_for_conduit_input_data():
     current_dir = os.getcwd()
-    if "Basin_Logix" in current_dir.split("\\"):
+    if "Basin_Logix" == os.getcwd().split('/')[-1].split('\\')[-1]:
             logging.warning("Basin_Logix directory detected - all input files will be referenced from this directory")
     else:
         logging.warning(" PLEASE CHANGE YOUR DIRECTORY TO BASIN LOGIX REPO - "
@@ -105,9 +106,12 @@ def tell_me_more_about_my_parcel(parcel_of_choice):
 
 if __name__ == "__main__":
     # check for inputs files and change directory
-    CONDUIT_INPUT_DATA_DIR = 'C:\\Users\\Alfahham\\Basin_Logix\\data_logix\\conduit_input_data' # TODO SPENCER PLEASE CHANGE THIS
-    os.chdir(CONDUIT_INPUT_DATA_DIR)
     check_for_conduit_input_data()
+    if os.name == 'posix':
+        CONDUIT_INPUT_DATA_DIR = './data_logix/conduit_input_data'
+    else:
+        CONDUIT_INPUT_DATA_DIR = '.\\data_logix\\conduit_input_data' # HAHAHA the escape char, not sure if relative path will work in windows
+    os.chdir(CONDUIT_INPUT_DATA_DIR) # no me gusta esto 
     check_for_conduit_input_files()
 
     # lets load in all the needed data
