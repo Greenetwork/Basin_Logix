@@ -43,6 +43,13 @@ def check_for_conduit_input_files():
     else:
         logging.warning("MISSING INPUT FILES")
 
+def load_ewrims_diversion_data():
+    points_of_diversion = gpd.read_file("eWRIMS_POINTS_OF_DIVERSION.geojson")
+    assert points_of_diversion.crs == {'init': 'epsg:4326'}
+    assert type(points_of_diversion.geometry) == (gpd.geoseries.GeoSeries)
+    logging.warning("eWRIMS POINTS OF DIVERSION - Loaded")
+    return points_of_diversion
+
 def load_water_districts_data():
     water_districts = gpd.read_file("WATER_DISTRICTS.geojson")
     assert water_districts.crs == {'init': 'epsg:4326'}
@@ -87,7 +94,11 @@ def filter_datasets_by_parcel_id(parcel_id: int, parcel_df):
 
 def populate_an_aware_parcel(single_parcel_df, water_districts_df):
     single_parcel_df = single_parcel_df.reset_index()
-    populated_parcel_district_information = gpd.sjoin(single_parcel_df, water_districts_df, how="left", op='intersects').drop(columns=['index', "index_right", ])
+    populated_parcel_district_information = gpd.sjoin(single_parcel_df, water_districts_df, how="left", op='intersects').drop(columns=['index', "index_right", ]).drop(columns=['STATEFP', 'COUNTYFP', 'COUNTYNS',
+                                                                                'GEOID', 'NAME', 'NAMELSAD', 'LSAD',
+                                                                                'CLASSFP', 'MTFCC', 'CSAFP', 'CBSAFP',
+                                                                                'METDIVFP', 'FUNCSTAT'])
+
     populated_parcel_district_and_crop_information = gpd.sjoin(populated_parcel_district_information, water_districts_df, how="left", op='intersects')
     return populated_parcel_district_and_crop_information
 
@@ -107,18 +118,19 @@ def tell_me_more_about_my_parcel(parcel_of_choice):
 if __name__ == "__main__":
     # check for inputs files and change directory
     check_for_conduit_input_data()
-    if os.name == 'posix':
-        CONDUIT_INPUT_DATA_DIR = './data_logix/conduit_input_data'
-    else:
-        CONDUIT_INPUT_DATA_DIR = '.\\data_logix\\conduit_input_data' # HAHAHA the escape char, not sure if relative path will work in windows
-    os.chdir(CONDUIT_INPUT_DATA_DIR) # no me gusta esto 
+    # if os.name == 'posix':
+    #     CONDUIT_INPUT_DATA_DIR = './data_logix/conduit_input_data'
+    # else:
+    #     CONDUIT_INPUT_DATA_DIR = '~\\data_logix\\conduit_input_data' # HAHAHA the escape char, not sure if relative path will work in windows
+    # os.chdir(CONDUIT_INPUT_DATA_DIR) # no me gusta esto
     check_for_conduit_input_files()
 
     # lets load in all the needed data
     COUNTIES = load_california_counties_data()
     CROPS = load_california_crops_data()
     PARCELS = load_california_parcel_data()
-    WATER_DISTRICTS = load_water_districts_data()
+    WATER_DISTRICTS = load_water_districts_data() # water districts
+    DIVERSIONS = load_ewrims_diversion_data() # Points of Diversion (PODs) are locations where water is being drawn from a water source such as a stream or river.
 
     # using some the functions
     SAN_JOAQUIN_GEOM = get_geom_from_county_name(counties_data_frame=COUNTIES, selected_county="San Joaquin") #nice source of geom for the county but i dont use this somewhere else
@@ -126,6 +138,6 @@ if __name__ == "__main__":
     single_parcel_df = filter_datasets_by_parcel_id(parcel_id=17328001, parcel_df=PARCELS)
     parcel_of_choice = populate_an_aware_parcel(single_parcel_df, water_districts_df=WATER_DISTRICTS)
     parcel_of_choice_df = pd.DataFrame(parcel_of_choice)
-    tell_me_more_about_my_parcel(parcel_of_choice_df)
+    #tell_me_more_about_my_parcel(parcel_of_choice_df)
 
 
