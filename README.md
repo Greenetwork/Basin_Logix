@@ -4,10 +4,13 @@ Please create a conda env from **data_logix_env.yml**
 This is the initial repository for BLX.
 
 **Marco Tasks:**
-[ ] conduit.py: generalized pipeline that can "query" important water district information about an APN number from various datasets
-[ ] conduit.py: conduit should only be limited to the APN > Relevant Input Params layer
-[ ] conduit.py: modularize in order to allow outputs based on user provided APN
-[ ] conduit.py: outputs should comply with NFT input parameters
+*[ ]* conduit.py: generalized pipeline that can "query" important water district information about an APN number from various datasets
+
+*[ ]* conduit.py: conduit should only be limited to the APN > Relevant Input Params layer
+
+*[ ]* conduit.py: modularize in order to allow outputs based on user provided APN
+
+*[ ]* conduit.py: outputs should comply with NFT input parameters
 
 [ ] 
 
