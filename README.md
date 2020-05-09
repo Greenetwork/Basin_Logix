@@ -5,7 +5,7 @@ This is the initial repository for BLX.
 
 **Marco Tasks:**
 
-*[ ]* **conduit.py**: generalized pipeline that can "query" important water district information about an APN number from various datasets
+- [ ] **conduit.py**: generalized pipeline that can "query" important water district information about an APN number from various datasets
 
 *[ ]* **conduit.py**: conduit should only be limited to the APN > Relevant Input Params layer
 
