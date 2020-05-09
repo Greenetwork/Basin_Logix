@@ -3,6 +3,20 @@
 Please create a conda env from **data_logix_env.yml**
 This is the initial repository for BLX.
 
+**Marco Tasks:**
+
+- [ ] **conduit.py**: generalized pipeline that can "query" important water district information about an APN number from various datasets
+
+- [ ] **conduit.py**: conduit should only be limited to the APN > Relevant Input Params layer
+
+- [ ] **conduit.py**: modularize in order to allow outputs based on user provided APN
+
+- [ ] **conduit.py**: outputs should comply with NFT input parameters
+
+- [ ] **cimis_importer.py**: connects to CIMIS API and retrieves agrictulral climate data
+
+- [ ] **wdl_scraper.py**: start a script that scrapes http://wdl.water.ca.gov/waterdatalibrary/index.cfm in order to obtain dynamic reports of daily water levels around california 
+
 Data Sources:
 - California Department of Water Resources (water rights?)
 - USDA (land/crop categorization)
