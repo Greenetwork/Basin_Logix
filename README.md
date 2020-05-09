@@ -15,6 +15,8 @@ This is the initial repository for BLX.
 
 - [ ] **cimis_importer.py**: connects to CIMIS API and retrieves agrictulral climate data
 
+- [ ] **cimis_importer.py**: modular class>method to allow for completely API capability in python
+
 - [ ] **wdl_scraper.py**: start a script that scrapes http://wdl.water.ca.gov/waterdatalibrary/index.cfm in order to obtain dynamic reports of daily water levels around california 
 
 Data Sources:
