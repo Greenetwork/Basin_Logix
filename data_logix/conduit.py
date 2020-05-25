@@ -105,18 +105,19 @@ def populate_an_aware_parcel(single_parcel_df, water_districts_df, crop_data_df)
     assert len(single_parcel_with_crop_data.columns) == len(crop_data_df.columns) + len(single_parcel_wtr_dist.columns) - 1
     return single_parcel_with_crop_data
 
-def find_the_nearest_water_diversion(single_parcel_with_crop_data, diversion):
+def find_the_nearest_water_diversion(single_parcel_with_crop_data, diversion_data):
     #how about buffering around our APN block
-    parcel_of_choice_buffered = parcel_of_choice.copy()
-    parcel_of_choice_buffered["geometry"] = parcel_of_choice.buffer(0.1) #same as the raduis of CRS wich means its 0.5 degrees
-    nearest_diversion_to_APN = gpd.sjoin(parcel_of_choice_buffered, DIVERSIONS, how="left", op='intersects').reset_index(drop=True) # keep right index need it later
+    single_parcel_with_crop_data = parcel_of_choice_181
+    diversion_data = DIVERSIONS
+    parcel_of_choice = single_parcel_with_crop_data.copy()
+    parcel_of_choice_buffered = single_parcel_with_crop_data.copy()
+    parcel_of_choice_buffered["geometry"] = parcel_of_choice_buffered.buffer(0.1) #same as the raduis of CRS wich means its 0.5 degrees
+    nearest_diversion_to_APN = gpd.sjoin(parcel_of_choice_buffered, diversion_data, how="left", op='intersects').reset_index(drop=True) # keep right index need it later
     nearest_diversion_to_APN_df = pd.DataFrame(nearest_diversion_to_APN)
-    diversion_points_around_my_apn = DIVERSIONS.loc[nearest_diversion_to_APN.index_right] # now we only extract the points from diversions that we want to view as pts
-    diversion_points_around_my_apn.to_file("diversions_around_APN") #TODO REMOVE THIS CAUSE ITS ONLY FOR DEMONSTARTION
-    # columns_to_drop = set(nearest_diversion_to_APN.columns)-set(['SPECIAL_AREA', 'HUC_12', 'HUC_8', 'HU_8_NAME', 'HU_12_NAME', "geometry"])
-    # my_APN = nearest_diversion_to_APN.drop(columns=(list(columns_to_drop))) #todo DO WE WE NEED THIS NOW
-    nearest_diversion_to_APN_df[nearest_diversion_to_APN_df["HU_12_NAME"].unique()]
-    parcel_of_choice.to_file("parcel_of_choice")
+    diversion_points_around_my_apn = diversion_data.loc[nearest_diversion_to_APN.index_right] # now we only extract the points from diversions that we want to view as pts
+    nearest_diversion_to_APN_final = gpd.sjoin(diversion_points_around_my_apn, parcel_of_choice, how="left", op='intersects').reset_index(drop=True) # keep right index need it later
+    #something_for_later = nearest_diversion_to_APN_df[nearest_diversion_to_APN_df["HU_12_NAME"].unique()]
+    return nearest_diversion_to_APN_final
 
 def tell_me_more_about_my_parcel(parcel_of_choice):
     parcel_of_choice_df = pd.DataFrame(parcel_of_choice)
@@ -149,10 +150,29 @@ if __name__ == "__main__":
     # using some the functions
     SAN_JOAQUIN_GEOM = get_geom_from_county_name(counties_data_frame=COUNTIES, selected_county="San Joaquin") #nice source of geom for the county but i dont use this somewhere else
     san_joaquin_crop = filter_data_by_county(data_frame_to_filter=CROPS, county_geom=SAN_JOAQUIN_GEOM)
-    single_parcel_df = filter_datasets_by_parcel_id(parcel_id=17912900, parcel_df=PARCELS)
-    parcel_of_choice = populate_an_aware_parcel(single_parcel_df, water_districts_df=WATER_DISTRICTS, crop_data_df=CROPS)
-    parcel_of_choice.to_file("parcel_of_choice")
-    parcel_of_choice_df = pd.DataFrame(parcel_of_choice)
-    tell_me_more_about_my_parcel(parcel_of_choice_df)
+    single_parcel_129 = filter_datasets_by_parcel_id(parcel_id=12919031, parcel_df=PARCELS)
+    single_parcel_181 = filter_datasets_by_parcel_id(parcel_id=18102019, parcel_df=PARCELS)
+    parcel_of_choice_129 = populate_an_aware_parcel(single_parcel_129, water_districts_df=WATER_DISTRICTS, crop_data_df=CROPS)
+    parcel_of_choice_181 = populate_an_aware_parcel(single_parcel_181, water_districts_df=WATER_DISTRICTS, crop_data_df=CROPS)
+    parcel_of_choice_129.columns = map(str.lower, parcel_of_choice_129.columns)
+    parcel_of_choice_181.columns = map(str.lower, parcel_of_choice_181.columns)
+    parcel_of_choice_129.to_file("12919031.geojson", driver='GeoJSON')
+    parcel_of_choice_181.to_file("18102019.geojson", driver='GeoJSON')
+    parcel_of_choice_129_df = pd.DataFrame(parcel_of_choice_129)
+    parcel_of_choice_129_df.to_json("12919031.json", orient='values')
+    parcel_of_choice_181_df = pd.DataFrame(parcel_of_choice_181)
+    parcel_of_choice_181_df.to_json("18102019.json", orient='values')
+
+
+    parcel_of_choice_181 = populate_an_aware_parcel(single_parcel_181, water_districts_df=WATER_DISTRICTS, crop_data_df=CROPS)
+    parcel_of_choice_129.to_file("parcel_of_choice")
+    parcel_of_choice_129_diversion = find_the_nearest_water_diversion(single_parcel_with_crop_data=parcel_of_choice_181, diversion_data=DIVERSIONS)
+
+    #
+    # parcel_of_choice_129.to_file("parcel_of_choice")
+    # parcel_of_choice_129
+    # diversion_points_around_my_apn.to_file("diversions_around_APN") #TODO REMOVE THIS CAUSE ITS ONLY FOR DEMONSTARTION
+    # parcel_of_choice_df = pd.DataFrame(parcel_of_choice)
+    # tell_me_more_about_my_parcel(parcel_of_choice_df)
 
 
