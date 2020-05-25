@@ -17,9 +17,12 @@ import sys
 import pandas as pd
 import geopandas as gpd
 import logging
+from pathlib import Path, PureWindowsPath, PurePosixPath
 import fiona
 
 def check_for_conduit_input_data():
+    '''this function is just checking if your console is in the basin logix repo
+    it doesnt check the input data sources yet'''
     current_dir = os.getcwd()
     if "Basin_Logix" == os.getcwd().split('/')[-1].split('\\')[-1]:
             logging.warning("Basin_Logix directory detected - all input files will be referenced from this directory")
@@ -92,15 +95,28 @@ def filter_datasets_by_parcel_id(parcel_id: int, parcel_df):
     parcel_of_choice = parcel_df[parcel_df["APN"] == int(parcel_id)]
     return parcel_of_choice
 
-def populate_an_aware_parcel(single_parcel_df, water_districts_df):
-    single_parcel_df = single_parcel_df.reset_index()
-    populated_parcel_district_information = gpd.sjoin(single_parcel_df, water_districts_df, how="left", op='intersects').drop(columns=['index', "index_right", ]).drop(columns=['STATEFP', 'COUNTYFP', 'COUNTYNS',
-                                                                                'GEOID', 'NAME', 'NAMELSAD', 'LSAD',
-                                                                                'CLASSFP', 'MTFCC', 'CSAFP', 'CBSAFP',
-                                                                                'METDIVFP', 'FUNCSTAT'])
+def populate_an_aware_parcel(single_parcel_df, water_districts_df, crop_data_df):
+    single_parcel_df = single_parcel_df.reset_index(drop=True) # we start here with the APN
+    # we also need to add water districts information to single parcel df
+    # need to reset index and to drop index_right that gets added during the sjoin process by gpd
+    single_parcel_wtr_dist = gpd.sjoin(single_parcel_df, water_districts_df, how="left", op='intersects').reset_index(drop=True).drop(columns="index_right")
+    # we need to add the crops data to the single parcel df in this case we dont need a buffer
+    single_parcel_with_crop_data = gpd.sjoin(single_parcel_wtr_dist, crop_data_df, how="left", op='intersects').reset_index(drop=True).drop(columns="index_right")
+    assert len(single_parcel_with_crop_data.columns) == len(crop_data_df.columns) + len(single_parcel_wtr_dist.columns) - 1
+    return single_parcel_with_crop_data
 
-    populated_parcel_district_and_crop_information = gpd.sjoin(populated_parcel_district_information, water_districts_df, how="left", op='intersects')
-    return populated_parcel_district_and_crop_information
+def find_the_nearest_water_diversion(single_parcel_with_crop_data, diversion):
+    #how about buffering around our APN block
+    parcel_of_choice_buffered = parcel_of_choice.copy()
+    parcel_of_choice_buffered["geometry"] = parcel_of_choice.buffer(0.1) #same as the raduis of CRS wich means its 0.5 degrees
+    nearest_diversion_to_APN = gpd.sjoin(parcel_of_choice_buffered, DIVERSIONS, how="left", op='intersects').reset_index(drop=True) # keep right index need it later
+    nearest_diversion_to_APN_df = pd.DataFrame(nearest_diversion_to_APN)
+    diversion_points_around_my_apn = DIVERSIONS.loc[nearest_diversion_to_APN.index_right] # now we only extract the points from diversions that we want to view as pts
+    diversion_points_around_my_apn.to_file("diversions_around_APN") #TODO REMOVE THIS CAUSE ITS ONLY FOR DEMONSTARTION
+    # columns_to_drop = set(nearest_diversion_to_APN.columns)-set(['SPECIAL_AREA', 'HUC_12', 'HUC_8', 'HU_8_NAME', 'HU_12_NAME', "geometry"])
+    # my_APN = nearest_diversion_to_APN.drop(columns=(list(columns_to_drop))) #todo DO WE WE NEED THIS NOW
+    nearest_diversion_to_APN_df[nearest_diversion_to_APN_df["HU_12_NAME"].unique()]
+    parcel_of_choice.to_file("parcel_of_choice")
 
 def tell_me_more_about_my_parcel(parcel_of_choice):
     parcel_of_choice_df = pd.DataFrame(parcel_of_choice)
@@ -118,11 +134,9 @@ def tell_me_more_about_my_parcel(parcel_of_choice):
 if __name__ == "__main__":
     # check for inputs files and change directory
     check_for_conduit_input_data()
-    # if os.name == 'posix':
-    #     CONDUIT_INPUT_DATA_DIR = './data_logix/conduit_input_data'
-    # else:
-    #     CONDUIT_INPUT_DATA_DIR = '~\\data_logix\\conduit_input_data' # HAHAHA the escape char, not sure if relative path will work in windows
-    # os.chdir(CONDUIT_INPUT_DATA_DIR) # no me gusta esto
+    #using path lib to let it figure out the difference paths based on OS instead of an if statement
+    CONDUIT_INPUT_DATA_DIR = Path(os.getcwd() + '\data_logix\conduit_input_data') # should be testing this on linux by printing out the path and seeing if pathlib detects the os / path combo
+    os.chdir(CONDUIT_INPUT_DATA_DIR) # no me gusta esto
     check_for_conduit_input_files()
 
     # lets load in all the needed data
@@ -135,9 +149,10 @@ if __name__ == "__main__":
     # using some the functions
     SAN_JOAQUIN_GEOM = get_geom_from_county_name(counties_data_frame=COUNTIES, selected_county="San Joaquin") #nice source of geom for the county but i dont use this somewhere else
     san_joaquin_crop = filter_data_by_county(data_frame_to_filter=CROPS, county_geom=SAN_JOAQUIN_GEOM)
-    single_parcel_df = filter_datasets_by_parcel_id(parcel_id=17328001, parcel_df=PARCELS)
-    parcel_of_choice = populate_an_aware_parcel(single_parcel_df, water_districts_df=WATER_DISTRICTS)
+    single_parcel_df = filter_datasets_by_parcel_id(parcel_id=17912900, parcel_df=PARCELS)
+    parcel_of_choice = populate_an_aware_parcel(single_parcel_df, water_districts_df=WATER_DISTRICTS, crop_data_df=CROPS)
+    parcel_of_choice.to_file("parcel_of_choice")
     parcel_of_choice_df = pd.DataFrame(parcel_of_choice)
-    #tell_me_more_about_my_parcel(parcel_of_choice_df)
+    tell_me_more_about_my_parcel(parcel_of_choice_df)
 
 
