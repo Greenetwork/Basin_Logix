@@ -8,7 +8,7 @@ water consumption calculations
 
 # start with various public datasets
 # filter to san joaquin county for testing purposes
-# filer (zoom) to one single farm or vineyar for testing purpose
+# filer (zoom) to one single farm or vineyard for testing purpose
 
 #conduit py
 
@@ -152,8 +152,12 @@ if __name__ == "__main__":
     san_joaquin_crop = filter_data_by_county(data_frame_to_filter=CROPS, county_geom=SAN_JOAQUIN_GEOM)
     single_parcel_129 = filter_datasets_by_parcel_id(parcel_id=12919031, parcel_df=PARCELS)
     single_parcel_181 = filter_datasets_by_parcel_id(parcel_id=18102019, parcel_df=PARCELS)
-    parcel_of_choice_129 = populate_an_aware_parcel(single_parcel_129, water_districts_df=WATER_DISTRICTS, crop_data_df=CROPS)
-    parcel_of_choice_181 = populate_an_aware_parcel(single_parcel_181, water_districts_df=WATER_DISTRICTS, crop_data_df=CROPS)
+    parcel_of_choice_129 = populate_an_aware_parcel(single_parcel_129,
+                                                    water_districts_df=WATER_DISTRICTS,
+                                                    crop_data_df=CROPS)
+    parcel_of_choice_181 = populate_an_aware_parcel(single_parcel_181,
+                                                    water_districts_df=WATER_DISTRICTS,
+                                                    crop_data_df=CROPS)
     parcel_of_choice_129.columns = map(str.lower, parcel_of_choice_129.columns)
     parcel_of_choice_181.columns = map(str.lower, parcel_of_choice_181.columns)
     parcel_of_choice_129.to_file("12919031.geojson", driver='GeoJSON')
