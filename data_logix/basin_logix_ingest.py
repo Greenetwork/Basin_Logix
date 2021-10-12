@@ -44,7 +44,9 @@ def ingest_dwr_data(county):
     print("STARTED LOADING ALL FILES")
     gdf_counties = gpd.read_file('raw_data/ca-county-boundaries/CA_Counties/CA_Counties_TIGER2016.dbf',
                                  driver='FileGDB',
-                                 layer='CA_Counties_TIGER2016')
+                                 layer='CA_Counties_TIGER2016',
+                                 rows=100)
+    print(f"COUNTIES CONTAINS {len(gdf_counties)} ROWS")
 
     gdf_kern_county = gdf_counties.loc[gdf_counties['NAME'] == county]
 
@@ -52,21 +54,25 @@ def ingest_dwr_data(county):
                              driver='FileGDB',
                              layer='i15_Crop_Mapping_2018',
                              mask=gdf_kern_county)
-
+    print(f"CROP CONTAINS {len(gdf_crop)} ROWS")
     gdf_apn = gpd.read_file('raw_data/Parcels_CA_2014.gdb/',
                             driver='FileGDB',
                             layer='CA_PARCELS_STATEWIDE',
-                            mask=gdf_kern_county)
+                            mask=gdf_kern_county,
+                            )
+    print(f"APN CONTAINS {len(gdf_apn)} ROWS")
 
     gdf_gsa = gpd.read_file('raw_data/submittedgsa/',
                             driver='FileGDB',
                             layer='GSA_Master',
                             mask=gdf_kern_county)
+    print(f"GSA CONTAINS {len(gdf_gsa)} ROWS")
 
     gdf_118 = gpd.read_file('raw_data/B118_2018_GISdata/Geodatabase/B118_v6-1.gdb',
                             driver='FileGDB',
                             layer='i08_B118_v6_1',
                             mask=gdf_kern_county)
+    print(f"118 CONTAINS {len(gdf_118)} ROWS")
 
     meta_data_dict = pd.read_excel('crop_metadata.xlsx',
                                    engine='openpyxl',
@@ -116,37 +122,42 @@ def ingest_dwr_data(county):
     gdf_combo_118_GSA_max_area = gdf_combo_GSA.merge(gdf_over_max, left_on=['UniqueID',
                                                                             'GSA_ID'], right_on=['UniqueID',
                                                                                                  'GSA_ID'])
-    final_df = gdf_combo_118_GSA_max_area.explode()[['UniqueID', 'geometry', 'PARNO',
+    final_df = gdf_combo_118_GSA_max_area.explode()[['geometry', 'PARNO',
                                                      'County', 'GSA_ID', 'DWR_GSA_ID', 'GSA_Name',
-                                                     'Basin_Subbasin_Number_left', 'crop2018', 'REGION', 'ACRES']]
+                                                     'Basin_Subbasin_Number', 'crop2018', 'REGION', 'ACRES']]
+                                                     # 'UniqueID'
     print("DONE WITH ALL JOINS")
-    final_df["PARNO_COPY"] = final_df["PARNO"].astype(int)
+
+    final_df["PARNO_COPY"] = final_df["PARNO"].str.replace("-", "")
+    final_df["PARNO_COPY"] = final_df["PARNO_COPY"].astype(int)
     final_df.rename(columns={
-        'UniqueID': 'id',  # drop not really needed or map to "id"
+        # 'UniqueID': 'id',  # drop not really needed or map to "id"
         'geometry': 'geometry',  # 4326
         'PARNO': 'apn_chr',  # APN STR
         'PARNO_COPY': "apn",  # APN INT
         'County': 'county',
         'GSA_ID': 'gsa_id',  # todo: NEW COL NEED TO BE ADDED (int)
         'DWR_GSA_ID': 'dwr_gsa_id',  # todo: NEW COL NEED TO BE ADDED (int)
-        'Basin_Subbasin_Number_left': 'dwr_gsa_basin_subbasin_num',  # todo: NEW COL NEED TO BE ADDED (str)
+        'Basin_Subbasin_Number': 'dwr_gsa_basin_subbasin_num',  # todo: NEW COL NEED TO BE ADDED (str)
         'GSA_Name': 'agencyname',  # migration from old to new data
         'crop2018': 'crop2016',
         'REGION': 'region',
         'ACRES': 'acres'}, inplace=True)
 
-    final_df = final_df.astype(dtype={"id": int,
-                                      "apn_str": str,
-                                      "apn": int,
-                                      "county": str,
-                                      "gsa_id": int,
-                                      "dwr_gsa_id": int,
-                                      "dwr_gsa_basin_subbasin_num": str,
-                                      "agencyname": str,
-                                      "crop2016": str,
-                                      "region": str,
-                                      "acres": float})
-
+    final_df = final_df.astype(dtype={
+        "apn_chr": str,
+        "apn": int,
+        "county": str,
+        "gsa_id": int,
+        "dwr_gsa_id": int,
+        "dwr_gsa_basin_subbasin_num": str,
+        "agencyname": str,
+        "crop2016": str,
+        "region": str,
+        "acres": float,
+        # "id": int,
+    })
+    print(f"FINAL DATAFRAME CONTAINS {len(final_df)} ROWS")
     final_df.reset_index(drop=True, inplace=True)
     final_df["geometry"] = convert_3D_2D(final_df.geometry)
     final_df.to_crs(4326, inplace=True)
@@ -155,7 +166,7 @@ def ingest_dwr_data(county):
     final_df.to_postgis('blx_consolidated_apn',
                         blx_engine,
                         if_exists='append',
-                        chunksize=1000)
+                        chunksize=250)
     print(f"DONE WRITING DATA TO DB FOR {county}")
 
 
@@ -220,5 +231,5 @@ if __name__ == "__main__":
             print("--- %s seconds ---" % (time.time() - start_time))
         except Exception as e:
             failed_runs[county_str] = e
-            print(f"FAILED with {county_str}")
+            print(f"FAILED with {county_str} BECAUSE OF {e}")
             continue
