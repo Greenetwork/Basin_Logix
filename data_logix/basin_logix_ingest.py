@@ -10,6 +10,7 @@ from dotenv import load_dotenv
 import logging
 from tqdm import tqdm
 import time
+import re
 
 from shapely.geometry import Polygon, MultiPolygon, shape, Point
 
@@ -45,7 +46,8 @@ def ingest_dwr_data(county):
     gdf_counties = gpd.read_file('raw_data/ca-county-boundaries/CA_Counties/CA_Counties_TIGER2016.dbf',
                                  driver='FileGDB',
                                  layer='CA_Counties_TIGER2016',
-                                 rows=100)
+                                 # rows=100
+                                 )
     print(f"COUNTIES CONTAINS {len(gdf_counties)} ROWS")
 
     gdf_kern_county = gdf_counties.loc[gdf_counties['NAME'] == county]
@@ -53,25 +55,32 @@ def ingest_dwr_data(county):
     gdf_crop = gpd.read_file('raw_data/i15_crop_mapping_2018_gdb/i15_crop_mapping_2018.gdb',
                              driver='FileGDB',
                              layer='i15_Crop_Mapping_2018',
-                             mask=gdf_kern_county)
+                             mask=gdf_kern_county,
+                             # rows=200
+                             )
     print(f"CROP CONTAINS {len(gdf_crop)} ROWS")
     gdf_apn = gpd.read_file('raw_data/Parcels_CA_2014.gdb/',
                             driver='FileGDB',
                             layer='CA_PARCELS_STATEWIDE',
                             mask=gdf_kern_county,
+                            # rows=200
                             )
     print(f"APN CONTAINS {len(gdf_apn)} ROWS")
 
     gdf_gsa = gpd.read_file('raw_data/submittedgsa/',
                             driver='FileGDB',
                             layer='GSA_Master',
-                            mask=gdf_kern_county)
+                            mask=gdf_kern_county,
+                            # rows=200
+                            )
     print(f"GSA CONTAINS {len(gdf_gsa)} ROWS")
 
     gdf_118 = gpd.read_file('raw_data/B118_2018_GISdata/Geodatabase/B118_v6-1.gdb',
                             driver='FileGDB',
                             layer='i08_B118_v6_1',
-                            mask=gdf_kern_county)
+                            mask=gdf_kern_county,
+                            # rows=200
+                            )
     print(f"118 CONTAINS {len(gdf_118)} ROWS")
 
     meta_data_dict = pd.read_excel('crop_metadata.xlsx',
@@ -99,6 +108,9 @@ def ingest_dwr_data(county):
     gdf_combo_max_area = gdf_combo.merge(gdf_over_max, left_on=['UniqueID',
                                                                 'PARNO'], right_on=['UniqueID',
                                                                                     'PARNO'])
+
+    [re.sub("[^0-9^.]", "", string).replace("-", "").replace(" ", "") for string in strings_list]
+
     gdf_combo_max_area['crop2018'] = gdf_combo_max_area['CROPTYP2'].map(meta_data_dict)
     gdf_combo_max_area.drop(columns=["index_right"], inplace=True)
     gdf_combo_118 = gpd.sjoin(gdf_combo_max_area, gdf_118, how='inner',
@@ -126,12 +138,13 @@ def ingest_dwr_data(county):
                                                      'County', 'GSA_ID', 'DWR_GSA_ID', 'GSA_Name',
                                                      'Basin_Subbasin_Number', 'crop2018', 'REGION', 'ACRES']]
                                                      # 'UniqueID'
-    print("DONE WITH ALL JOINS")
+    print("CLEANING APN COLUMN")
+    final_df["PARNO_COPY"] = [re.sub("[^0-9^.]", "", string).replace("-", "").replace(" ", "")
+                              for string in list(final_df["PARNO"])]
+    final_df["PARNO_COPY"] = ["00000" if x == '' else x for x in list(final_df["PARNO_COPY"])]
+    final_df["PARNO_COPY"] = final_df["PARNO_COPY"].astype(int)
 
-    final_df["PARNO_COPY"] = final_df["PARNO"].str.replace("-", "")
-    final_df["PARNO_COPY"] = final_df["PARNO"].str.replace(" ", "")
-    final_df["PARNO_COPY"] = final_df["PARNO"].str.replace("G[a-z].*","", regex=True)
-    final_df["PARNO_COPY"] = final_df["PARNO_COPY"].astype(int, errors='ignore')
+    print("DONE WITH ALL JOINS")
     final_df.rename(columns={
         # 'UniqueID': 'id',  # drop not really needed or map to "id"
         'geometry': 'geometry',  # 4326
