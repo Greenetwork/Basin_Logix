@@ -129,7 +129,9 @@ def ingest_dwr_data(county):
     print("DONE WITH ALL JOINS")
 
     final_df["PARNO_COPY"] = final_df["PARNO"].str.replace("-", "")
-    final_df["PARNO_COPY"] = final_df["PARNO_COPY"].astype(int)
+    final_df["PARNO_COPY"] = final_df["PARNO"].str.replace(" ", "")
+    final_df["PARNO_COPY"] = final_df["PARNO"].str.replace("G[a-z].*","", regex=True)
+    final_df["PARNO_COPY"] = final_df["PARNO_COPY"].astype(int, errors='ignore')
     final_df.rename(columns={
         # 'UniqueID': 'id',  # drop not really needed or map to "id"
         'geometry': 'geometry',  # 4326
@@ -171,56 +173,58 @@ def ingest_dwr_data(county):
 
 
 if __name__ == "__main__":
-    list_of_counties = ['Alameda',
-                        'Alpine',
-                        'Amador',
-                        'Butte',
+    list_of_counties = [
+                        'Alameda',
+                        # 'Alpine',
+                        # 'Amador',
+                        # 'Butte',
                         'Calaveras',
-                        'Contra Costa',
-                        'Del Norte',
-                        'El Dorado',
+                        # 'Contra Costa',
+                        # 'Del Norte',
+                        # 'El Dorado',
                         'Fresno',
                         'Glenn',
                         'Humboldt',
                         'Imperial',
-                        'Kern',
+                        # 'Kern',
                         'Kings',
-                        'Lake',
+                        # 'Lake',
                         'Lassen',
-                        'Los Angeles',
+                        # 'Los Angeles', #
                         'Madera',
-                        'Marin',
+                        # 'Marin',
                         'Mendocino',
                         'Merced',
-                        'Mono',
+                        # 'Mono',
                         'Monterey',
-                        'Napa',
-                        'Nevada',
-                        'Orange',
+                        # 'Napa',
+                        # 'Nevada',
+                        # 'Orange',
                         'Placer',
                         'Riverside',
-                        'Sacramento',
-                        'San Benito',
+                        # 'Sacramento',
+                        # 'San Benito',
                         'San Bernardino',
                         'San Diego',
-                        'San Joaquin',
-                        'San Mateo',
-                        'Santa Barbara',
+                        # 'San Joaquin',
+                        # 'San Mateo',
+                        # 'Santa Barbara',
                         'Santa Clara',
                         'Santa Cruz',
                         'Shasta',
                         'Sierra',
-                        'Solano',
-                        'Sonoma',
-                        'Stanislaus',
+                        # 'Solano',
+                        # 'Sonoma',
+                        # 'Stanislaus',
                         'Sutter',
-                        'Tehama',
+                        # 'Tehama',
                         'Trinity',
                         'Tulare',
                         'Tuolumne',
                         'Ventura',
                         'Yolo',
-                        'Yuba']
+                        # 'Yuba'
+    ]
     failed_runs = {}
     for county_str in tqdm(list_of_counties):
         print(f"STARTING WITH {county_str}")
