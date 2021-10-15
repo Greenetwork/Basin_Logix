@@ -109,8 +109,6 @@ def ingest_dwr_data(county):
                                                                 'PARNO'], right_on=['UniqueID',
                                                                                     'PARNO'])
 
-    [re.sub("[^0-9^.]", "", string).replace("-", "").replace(" ", "") for string in strings_list]
-
     gdf_combo_max_area['crop2018'] = gdf_combo_max_area['CROPTYP2'].map(meta_data_dict)
     gdf_combo_max_area.drop(columns=["index_right"], inplace=True)
     gdf_combo_118 = gpd.sjoin(gdf_combo_max_area, gdf_118, how='inner',
@@ -141,7 +139,7 @@ def ingest_dwr_data(county):
     print("CLEANING APN COLUMN")
     final_df["PARNO_COPY"] = [re.sub("[^0-9^.]", "", string).replace("-", "").replace(" ", "")
                               for string in list(final_df["PARNO"])]
-    final_df["PARNO_COPY"] = ["00000" if x == '' else x for x in list(final_df["PARNO_COPY"])]
+    final_df["PARNO_COPY"] = ["00000" if x == "" else x for x in list(final_df["PARNO_COPY"])]
     final_df["PARNO_COPY"] = final_df["PARNO_COPY"].astype(int)
 
     print("DONE WITH ALL JOINS")
