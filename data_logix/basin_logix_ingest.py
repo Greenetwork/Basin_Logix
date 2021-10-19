@@ -14,6 +14,7 @@ import re
 
 from shapely.geometry import Polygon, MultiPolygon, shape, Point
 
+'42-1'
 
 def convert_3D_2D(geometry):
     '''
@@ -49,7 +50,6 @@ def ingest_dwr_data(county):
                                  # rows=100
                                  )
     print(f"COUNTIES CONTAINS {len(gdf_counties)} ROWS")
-
     gdf_kern_county = gdf_counties.loc[gdf_counties['NAME'] == county]
 
     gdf_crop = gpd.read_file('raw_data/i15_crop_mapping_2018_gdb/i15_crop_mapping_2018.gdb',
@@ -140,6 +140,7 @@ def ingest_dwr_data(county):
     final_df["PARNO_COPY"] = [re.sub("[^0-9^.]", "", string).replace("-", "").replace(" ", "")
                               for string in list(final_df["PARNO"])]
     final_df["PARNO_COPY"] = ["00000" if x == "" else x for x in list(final_df["PARNO_COPY"])]
+    final_df["PARNO_COPY"] = ["00000" if x == "42-1" else x for x in list(final_df["PARNO_COPY"])]
     final_df["PARNO_COPY"] = final_df["PARNO_COPY"].astype(int)
 
     print("DONE WITH ALL JOINS")
@@ -186,55 +187,55 @@ def ingest_dwr_data(county):
 if __name__ == "__main__":
     list_of_counties = [
                         'Alameda',
-                        # 'Alpine',
-                        # 'Amador',
-                        # 'Butte',
+                        'Alpine',
+                        'Amador',
+                        'Butte',
                         'Calaveras',
-                        # 'Contra Costa',
-                        # 'Del Norte',
-                        # 'El Dorado',
+                        'Contra Costa',
+                        'Del Norte',
+                        'El Dorado',
                         'Fresno',
                         'Glenn',
                         'Humboldt',
                         'Imperial',
-                        # 'Kern',
+                        'Kern',
                         'Kings',
-                        # 'Lake',
+                        'Lake',
                         'Lassen',
-                        # 'Los Angeles', #
+                        'Los Angeles', #
                         'Madera',
-                        # 'Marin',
+                        'Marin',
                         'Mendocino',
                         'Merced',
-                        # 'Mono',
+                        'Mono',
                         'Monterey',
-                        # 'Napa',
-                        # 'Nevada',
-                        # 'Orange',
+                        'Napa',
+                        'Nevada',
+                        'Orange',
                         'Placer',
                         'Riverside',
-                        # 'Sacramento',
-                        # 'San Benito',
+                        'Sacramento',
+                        'San Benito',
                         'San Bernardino',
                         'San Diego',
-                        # 'San Joaquin',
-                        # 'San Mateo',
-                        # 'Santa Barbara',
+                        'San Joaquin',
+                        'San Mateo',
+                        'Santa Barbara',
                         'Santa Clara',
                         'Santa Cruz',
                         'Shasta',
                         'Sierra',
-                        # 'Solano',
-                        # 'Sonoma',
-                        # 'Stanislaus',
+                        'Solano',
+                        'Sonoma',
+                        'Stanislaus',
                         'Sutter',
-                        # 'Tehama',
+                        'Tehama',
                         'Trinity',
                         'Tulare',
                         'Tuolumne',
                         'Ventura',
                         'Yolo',
-                        # 'Yuba'
+                        'Yuba'
     ]
     failed_runs = {}
     for county_str in tqdm(list_of_counties):
